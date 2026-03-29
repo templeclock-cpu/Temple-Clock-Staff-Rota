@@ -175,6 +175,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
         actions: [
+          // Export / Reports shortcut
+          IconButton(
+            onPressed: () => _onNavTap(6),
+            tooltip: 'Export Reports',
+            icon: const Icon(Icons.download_rounded, size: 20),
+          ),
+          // Alerts shortcut
+          IconButton(
+            onPressed: () => _onNavTap(7),
+            tooltip: 'Alerts',
+            icon: const Icon(Icons.notifications_outlined, size: 20),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 14),
             child: GestureDetector(
@@ -202,8 +214,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildBottomNav() {
-    // Show first 5 items on bottom nav (most important)
-    const mobileItems = [0, 1, 2, 3, 4];
+    // Mobile bottom nav: Dashboard, Rota, Timesheets, Leave, Alerts
+    const mobileItems = [0, 1, 2, 4, 7];
     return BottomNavigationBar(
       currentIndex: mobileItems.contains(_selectedIndex)
           ? mobileItems.indexOf(_selectedIndex)

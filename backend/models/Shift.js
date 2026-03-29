@@ -48,4 +48,8 @@ const shiftSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for common query patterns (shifts by staff, by date range, by status)
+shiftSchema.index({ staffId: 1, date: 1 });
+shiftSchema.index({ date: 1, status: 1 });
+
 module.exports = mongoose.model('Shift', shiftSchema);

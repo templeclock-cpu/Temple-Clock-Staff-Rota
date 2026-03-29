@@ -11,7 +11,8 @@ class UserService {
     final response = await _apiService.get('/users');
     final data = jsonDecode(response.body);
     if (response.statusCode == 200) {
-      return (data as List).map((e) => UserModel.fromJson(e)).toList();
+      final list = data is List ? data : (data['users'] ?? []);
+      return (list as List).map((e) => UserModel.fromJson(e)).toList();
     }
     throw Exception('Failed to fetch users');
   }

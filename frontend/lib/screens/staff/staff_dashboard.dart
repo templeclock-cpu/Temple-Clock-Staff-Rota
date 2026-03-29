@@ -104,11 +104,12 @@ class _StaffDashboardState extends State<StaffDashboard>
   }
 
   // ── Staff nav items for sidebar ──────────────────────────────────────────
-  static const _navLabels = ['Home', 'My Shifts', 'Leave', 'Profile'];
+  static const _navLabels = ['Home', 'My Shifts', 'Leave', 'Notifications', 'Profile'];
   static const _navIcons = [
     Icons.home_rounded,
     Icons.calendar_today_rounded,
     Icons.beach_access_rounded,
+    Icons.notifications_rounded,
     Icons.person_rounded,
   ];
 
@@ -117,9 +118,16 @@ class _StaffDashboardState extends State<StaffDashboard>
     final showSidebar = Responsive.showSidebar(context);
 
     final pages = [
-      _StaffHomePage(user: widget.user),
+      _StaffHomePage(
+        user: widget.user,
+        onNavigate: (i) => setState(() => _selectedIndex = i),
+      ),
       StaffShiftsPage(user: widget.user),
       StaffLeavePage(user: widget.user),
+      _StaffNotificationsPage(
+        user: widget.user,
+        onRead: () => _loadUnreadCount(),
+      ),
       _ProfileTab(user: widget.user),
     ];
 
@@ -245,23 +253,35 @@ class _StaffDashboardState extends State<StaffDashboard>
         selectedFontSize: 11,
         unselectedFontSize: 11,
         elevation: 12,
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home_rounded),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today_outlined),
             activeIcon: Icon(Icons.calendar_today_rounded),
             label: 'My Shifts',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.beach_access_outlined),
             activeIcon: Icon(Icons.beach_access_rounded),
             label: 'Leave',
           ),
           BottomNavigationBarItem(
+            icon: Badge(
+              isLabelVisible: _unreadAlertCount > 0,
+              label: Text(
+                _unreadAlertCount > 9 ? '9+' : _unreadAlertCount.toString(),
+                style: const TextStyle(fontSize: 10),
+              ),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            activeIcon: const Icon(Icons.notifications_rounded),
+            label: 'Alerts',
+          ),
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person_rounded),
             label: 'Profile',
@@ -276,7 +296,8 @@ class _StaffDashboardState extends State<StaffDashboard>
 
 class _StaffHomePage extends StatefulWidget {
   final UserModel user;
-  const _StaffHomePage({required this.user});
+  final ValueChanged<int>? onNavigate;
+  const _StaffHomePage({required this.user, this.onNavigate});
 
   @override
   State<_StaffHomePage> createState() => _StaffHomePageState();
@@ -327,12 +348,10 @@ class _StaffHomePageState extends State<_StaffHomePage> {
       }
 
       if (mounted) {
-        setState(() {
-          _todayShift = todayShift;
-          if (_todayShift != null) {
-            _refreshAttendance();
-          }
-        });
+        setState(() => _todayShift = todayShift);
+        if (todayShift != null) {
+          await _refreshAttendance();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -392,26 +411,193 @@ class _StaffHomePageState extends State<_StaffHomePage> {
   Widget build(BuildContext context) {
     final tf = DateFormat("HH:mm:ss");
     final df = DateFormat("EEEE, d MMMM yyyy");
+    final isWide = MediaQuery.of(context).size.width >= 800;
 
+    if (isWide) {
+      return SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGreeting(df),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left column
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      children: [
+                        _buildClockDisplay(tf),
+                        const SizedBox(height: 16),
+                        _buildClockCard(),
+                        const SizedBox(height: 16),
+                        _buildTodaySummary(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  // Right column
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      children: [
+                        _buildQuickActions(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 80),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Mobile layout
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Greeting
             _buildGreeting(df),
             const SizedBox(height: 16),
-            // Live clock
             _buildClockDisplay(tf),
             const SizedBox(height: 16),
-            // Clock in/out card
             _buildClockCard(),
             const SizedBox(height: 16),
-            // Today summary
+            _buildQuickActions(),
+            const SizedBox(height: 16),
             _buildTodaySummary(),
             const SizedBox(height: 80),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return _card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _teal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.flash_on_rounded, color: _teal, size: 18),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                "Quick Actions",
+                style: TextStyle(
+                  fontFamily: "Outfit",
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: _navy,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 2.2,
+            children: [
+              _quickActionTile(
+                icon: Icons.login,
+                label: "Clock In",
+                color: _teal,
+                onTap: () {
+                  if (_todayShift != null &&
+                      (_attendanceRecord == null)) {
+                    _openClockScreen(true);
+                  } else {
+                    showAppSnackBar(context,
+                        _todayShift == null
+                            ? "No shift today"
+                            : "Already clocked in");
+                  }
+                },
+              ),
+              _quickActionTile(
+                icon: Icons.calendar_today_rounded,
+                label: "My Shifts",
+                color: const Color(0xFF1565C0),
+                onTap: () => widget.onNavigate?.call(1),
+              ),
+              _quickActionTile(
+                icon: Icons.beach_access_rounded,
+                label: "Request Leave",
+                color: const Color(0xFF7B1FA2),
+                onTap: () => widget.onNavigate?.call(2),
+              ),
+              _quickActionTile(
+                icon: Icons.person_rounded,
+                label: "My Profile",
+                color: const Color(0xFF00838F),
+                onTap: () => widget.onNavigate?.call(3),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickActionTile({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: color.withValues(alpha: 0.07),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 16, color: color),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: "Outfit",
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 16, color: color.withValues(alpha: 0.5)),
+            ],
+          ),
         ),
       ),
     );
@@ -1136,6 +1322,80 @@ class _StatMini extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Staff Notifications Page (full tab) ────────────────────────────────────
+
+class _StaffNotificationsPage extends StatefulWidget {
+  final UserModel user;
+  final VoidCallback? onRead;
+  const _StaffNotificationsPage({required this.user, this.onRead});
+
+  @override
+  State<_StaffNotificationsPage> createState() =>
+      _StaffNotificationsPageState();
+}
+
+class _StaffNotificationsPageState extends State<_StaffNotificationsPage> {
+  List<AlertModel>? _alerts;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final svc = Provider.of<AlertService>(context, listen: false);
+      final alerts = await svc.getMyAlerts();
+      if (!mounted) return;
+
+      // Auto-mark unread as read
+      for (final a in alerts.where((a) => !a.readByStaff)) {
+        try {
+          await svc.markAlertReadByStaff(a.id);
+        } catch (_) {}
+      }
+      widget.onRead?.call();
+
+      if (mounted) setState(() { _alerts = alerts; _loading = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        showAppSnackBar(context, 'Failed to load notifications', isError: true);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_alerts == null || _alerts!.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.notifications_off_outlined,
+                size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 8),
+            const Text('No notifications yet',
+                style: TextStyle(color: Colors.grey, fontSize: 14)),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: _alerts!.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (_, i) => _NotificationTile(alert: _alerts![i]),
       ),
     );
   }

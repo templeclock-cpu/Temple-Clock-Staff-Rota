@@ -45,7 +45,8 @@ class AlertService {
     final response = await _apiService.get('/alerts');
     final data = jsonDecode(response.body);
     if (response.statusCode == 200) {
-      return (data as List).map((e) => AlertModel.fromJson(e)).toList();
+      final list = data is List ? data : (data['alerts'] ?? []);
+      return (list as List).map((e) => AlertModel.fromJson(e)).toList();
     }
     throw Exception('Failed to fetch alerts');
   }
@@ -55,7 +56,8 @@ class AlertService {
     final response = await _apiService.get('/alerts/my');
     final data = jsonDecode(response.body);
     if (response.statusCode == 200) {
-      return (data as List).map((e) => AlertModel.fromJson(e)).toList();
+      final list = data is List ? data : (data['alerts'] ?? []);
+      return (list as List).map((e) => AlertModel.fromJson(e)).toList();
     }
     throw Exception('Failed to fetch my alerts');
   }

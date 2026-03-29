@@ -4,12 +4,13 @@
 // Accepts the current RotaShift + a flag (isClockIn).
 // On success, pops with the resulting AttendanceRecord.
 
-import "dart:io";
 import "dart:async";
+import "dart:typed_data";
 import "package:flutter/material.dart";
 import "package:image_picker/image_picker.dart";
 import "package:intl/intl.dart";
 import "package:provider/provider.dart";
+import "package:geolocator/geolocator.dart";
 
 import "../../models/rota_model.dart";
 import "../../models/attendance_model.dart";
@@ -41,8 +42,14 @@ class _ClockInScreenState extends State<ClockInScreen> {
   DateTime _now = DateTime.now();
   Timer? _clockTimer;
   XFile? _capturedPhoto;
+  Uint8List? _photoBytes; // cross-platform photo bytes
   bool _isLoading = false;
   bool _photoSkipped = false;
+
+  // ── Location state ────────────────────────────────────────────────────────
+  Position? _currentPosition;
+  bool _locationLoading = true;
+  String? _locationError;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -52,12 +59,72 @@ class _ClockInScreenState extends State<ClockInScreen> {
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
+    _fetchLocation();
   }
 
   @override
   void dispose() {
     _clockTimer?.cancel();
     super.dispose();
+  }
+
+  // ─── Geolocation ─────────────────────────────────────────────────────────
+
+  Future<void> _fetchLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          setState(() {
+            _locationLoading = false;
+            _locationError = "Location services are disabled. Please enable them.";
+          });
+        }
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            setState(() {
+              _locationLoading = false;
+              _locationError = "Location permission denied.";
+            });
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          setState(() {
+            _locationLoading = false;
+            _locationError = "Location permission permanently denied.";
+          });
+        }
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+          _locationLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _locationLoading = false;
+          _locationError = "Could not get location: ${e.toString().length > 50 ? e.toString().substring(0, 50) : e}";
+        });
+      }
+    }
   }
 
   // ─── Grace helpers ───────────────────────────────────────────────────────────
@@ -95,16 +162,39 @@ class _ClockInScreenState extends State<ClockInScreen> {
 
   Future<void> _capturePhoto() async {
     try {
-      final photo = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 75,
-        preferredCameraDevice: CameraDevice.front,
-      );
+      XFile? photo;
+      try {
+        photo = await _picker.pickImage(
+          source: ImageSource.camera,
+          imageQuality: 75,
+          preferredCameraDevice: CameraDevice.front,
+        );
+      } catch (_) {
+        // Camera not available (common on web) — fall back to gallery
+        photo = await _picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 75,
+        );
+      }
+
       if (photo != null && mounted) {
-        setState(() {
-          _capturedPhoto = photo;
-          _photoSkipped = false;
-        });
+        try {
+          final bytes = await photo.readAsBytes();
+          if (bytes.length < 4) throw Exception("Invalid image");
+          setState(() {
+            _capturedPhoto = photo;
+            _photoBytes = bytes;
+            _photoSkipped = false;
+          });
+        } catch (_) {
+          if (mounted) {
+            showAppSnackBar(
+              context,
+              "Invalid image format. Please select a JPG or PNG file.",
+              isError: true,
+            );
+          }
+        }
       }
     } catch (_) {
       if (mounted) {
@@ -130,23 +220,36 @@ class _ClockInScreenState extends State<ClockInScreen> {
       return;
     }
 
+    if (_locationLoading) {
+      showAppSnackBar(
+        context,
+        "Waiting for location... Please wait.",
+        isError: true,
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       final attendanceService = Provider.of<AttendanceService>(context, listen: false);
       AttendanceRecord record;
+
+      final lat = _currentPosition?.latitude;
+      final lng = _currentPosition?.longitude;
       
       if (widget.isClockIn) {
         record = await attendanceService.clockIn(
           shiftId: widget.shift.id,
-          // Latitude/Longitude would come from a geolocator in Phase 3
-          latitude: 51.5074, 
-          longitude: -0.1278,
+          latitude: lat,
+          longitude: lng,
           photoPath: _capturedPhoto?.path,
         );
       } else {
         record = await attendanceService.clockOut(
           shiftId: widget.shift.id,
+          latitude: lat,
+          longitude: lng,
           photoPath: _capturedPhoto?.path,
         );
       }
@@ -194,6 +297,8 @@ class _ClockInScreenState extends State<ClockInScreen> {
               _buildShiftCard(),
               const SizedBox(height: 14),
               _buildGraceCard(),
+              const SizedBox(height: 14),
+              _buildLocationCard(),
               const SizedBox(height: 14),
               _buildPhotoCard(),
               const SizedBox(height: 24),
@@ -410,6 +515,154 @@ class _ClockInScreenState extends State<ClockInScreen> {
     );
   }
 
+  Widget _buildLocationCard() {
+    Color statusColor;
+    IconData statusIcon;
+    String statusText;
+    String? coordsText;
+
+    if (_locationLoading) {
+      statusColor = Colors.blue;
+      statusIcon = Icons.my_location;
+      statusText = "Fetching your location...";
+    } else if (_locationError != null) {
+      statusColor = Colors.orange;
+      statusIcon = Icons.location_off;
+      statusText = _locationError!;
+    } else if (_currentPosition != null) {
+      statusColor = _teal;
+      statusIcon = Icons.location_on;
+      statusText = "Location captured";
+      coordsText =
+          "${_currentPosition!.latitude.toStringAsFixed(5)}, ${_currentPosition!.longitude.toStringAsFixed(5)}";
+    } else {
+      statusColor = Colors.grey;
+      statusIcon = Icons.location_disabled;
+      statusText = "Location unavailable";
+    }
+
+    return _card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.share_location, color: _navy, size: 17),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  "Geofence Location",
+                  style: TextStyle(
+                    fontFamily: "Outfit",
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _navy,
+                  ),
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_locationLoading)
+                      SizedBox(
+                        width: 10,
+                        height: 10,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color: statusColor,
+                        ),
+                      )
+                    else
+                      Icon(statusIcon, size: 12, color: statusColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      _currentPosition != null
+                          ? "Captured"
+                          : _locationLoading
+                              ? "Loading"
+                              : "Error",
+                      style: TextStyle(
+                        fontFamily: "Outfit",
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: statusColor.withValues(alpha: 0.15)),
+            ),
+            child: Row(
+              children: [
+                Icon(statusIcon, color: statusColor, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          fontFamily: "Outfit",
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: statusColor,
+                        ),
+                      ),
+                      if (coordsText != null)
+                        Text(
+                          coordsText,
+                          style: TextStyle(
+                            fontFamily: "Outfit",
+                            fontSize: 11,
+                            color: statusColor.withValues(alpha: 0.7),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (_locationError != null)
+                  IconButton(
+                    icon: Icon(Icons.refresh, size: 18, color: statusColor),
+                    onPressed: () {
+                      setState(() {
+                        _locationLoading = true;
+                        _locationError = null;
+                      });
+                      _fetchLocation();
+                    },
+                    tooltip: "Retry",
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPhotoCard() {
     return _card(
       child: Column(
@@ -456,12 +709,33 @@ class _ClockInScreenState extends State<ClockInScreen> {
           // Preview
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: _capturedPhoto != null
+            child: _photoBytes != null
                 ? AspectRatio(
                     aspectRatio: 4 / 3,
-                    child: Image.file(
-                      File(_capturedPhoto!.path),
+                    child: Image.memory(
+                      _photoBytes!,
                       fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: const Color(0xFFF0F4F8),
+                        child: const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.broken_image_outlined,
+                                  size: 40, color: Colors.red),
+                              SizedBox(height: 6),
+                              Text(
+                                "Invalid image format",
+                                style: TextStyle(
+                                  fontFamily: "Outfit",
+                                  fontSize: 12,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   )
                 : Container(

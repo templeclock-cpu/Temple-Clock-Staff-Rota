@@ -40,17 +40,12 @@ dependencies:
   # ── Phase 3 — Clock-In Photo Capture ─────────────────────────────────────
   image_picker: ^1.1.2
 
+  # ── Phase 3 — Geofencing / Location ────────────────────────────────────
+  geolocator: ^12.0.0
+  geolocator_web: ^4.1.1
+
   # ── Phase 7 — Reports download ──────────────────────────────────────────
   url_launcher: ^6.2.5
-
-  # ── Pre-declared for future phases ───────────────────────
-  # firebase_core: ^3.0.0          # Phase 2 — Auth
-  # firebase_auth: ^5.0.0          # Phase 2 — Auth
-  # cloud_firestore: ^5.0.0        # Phase 2 — Database
-  # geolocator: ^12.0.0            # Phase 3 geofence (next step)
-  # mobile_scanner: ^5.0.0         # Phase 3 — QR scanning
-  # excel: ^4.0.3                  # Phase 5 — Export
-  # pdf: ^3.11.0                   # Phase 5 — Payslips
 
 dev_dependencies:
   flutter_test:

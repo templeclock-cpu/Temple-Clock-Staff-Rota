@@ -91,7 +91,10 @@ class _AdminRotaPageState extends State<AdminRotaPage> {
       return;
     }
     String? selectedStaffId = _staffList.first.id;
-    DateTime selectedDate = presetDate ?? DateTime.now();
+    final today = DateTime.now();
+    DateTime selectedDate = presetDate != null && presetDate.isAfter(today.subtract(const Duration(days: 1)))
+        ? presetDate
+        : today;
     TimeOfDay startTime = const TimeOfDay(hour: 9, minute: 0);
     TimeOfDay endTime = const TimeOfDay(hour: 17, minute: 0);
     final locationCtrl = TextEditingController();
@@ -141,8 +144,7 @@ class _AdminRotaPageState extends State<AdminRotaPage> {
                       final d = await showDatePicker(
                         context: ctx,
                         initialDate: selectedDate,
-                        firstDate:
-                            DateTime.now().subtract(const Duration(days: 30)),
+                        firstDate: DateTime.now(),
                         lastDate:
                             DateTime.now().add(const Duration(days: 365)),
                       );

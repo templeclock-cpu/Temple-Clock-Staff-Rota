@@ -29,7 +29,11 @@ class AttendanceService {
     final data = jsonDecode(response.body);
 
     if (response.statusCode == 201) {
-      return _parseRecord(data['attendance']);
+      // Backend may return { attendance: {...} } or the record directly
+      final record = data is Map && data.containsKey('attendance')
+          ? data['attendance']
+          : data;
+      return _parseRecord(record);
     } else {
       throw Exception(data['message'] ?? 'Failed to clock in');
     }
@@ -41,14 +45,23 @@ class AttendanceService {
     double? longitude,
     String? photoPath,
   }) async {
-    final response = await _apiService.post('/attendance/clock-out', {
+    final body = <String, dynamic>{
       'shiftId': shiftId,
-    });
+    };
+    if (latitude != null && longitude != null) {
+      body['location'] = {'lat': latitude, 'lng': longitude};
+    }
+
+    final response = await _apiService.post('/attendance/clock-out', body);
 
     final data = jsonDecode(response.body);
 
     if (response.statusCode == 200) {
-      return _parseRecord(data['attendance']);
+      // Backend may return { attendance: {...} } or the record directly
+      final record = data is Map && data.containsKey('attendance')
+          ? data['attendance']
+          : data;
+      return _parseRecord(record);
     } else {
       throw Exception(data['message'] ?? 'Failed to clock out');
     }

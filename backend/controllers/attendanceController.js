@@ -1,9 +1,22 @@
 const { validationResult } = require('express-validator');
 const Attendance = require('../models/Attendance');
 const Shift = require('../models/Shift');
+const Settings = require('../models/Settings');
 
-const GRACE_PERIOD_MINUTES = 10;
-const ALLOWED_RADIUS_METERS = 100;
+// Load configurable settings from DB (cached for performance)
+let _cachedSettings = null;
+let _settingsCachedAt = 0;
+const SETTINGS_CACHE_MS = 60000; // refresh every 60s
+
+async function getSettings() {
+  const now = Date.now();
+  if (!_cachedSettings || now - _settingsCachedAt > SETTINGS_CACHE_MS) {
+    _cachedSettings = await Settings.findOne({ key: 'global' });
+    if (!_cachedSettings) _cachedSettings = await Settings.create({ key: 'global' });
+    _settingsCachedAt = now;
+  }
+  return _cachedSettings;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,8 +90,14 @@ const clockIn = async (req, res) => {
         .json({ message: 'Already clocked in for this shift' });
     }
 
-    // 4. Geofence — check within allowed radius if shift has coordinates
+    // 4. Load settings for geofence + grace period
+    const settings = await getSettings();
+    const ALLOWED_RADIUS = settings.geofenceRadius || 200;
+    const GRACE_PERIOD = settings.gracePeriodMinutes || 10;
+
+    // 5. Geofence — check within allowed radius if shift has coordinates
     if (
+      settings.geofenceEnabled &&
       shift.coordinates &&
       shift.coordinates.lat != null &&
       shift.coordinates.lng != null
@@ -96,14 +115,14 @@ const clockIn = async (req, res) => {
         shift.coordinates.lng
       );
 
-      if (distance > ALLOWED_RADIUS_METERS) {
+      if (distance > ALLOWED_RADIUS) {
         return res.status(403).json({
-          message: `You are ${Math.round(distance)}m away. Must be within ${ALLOWED_RADIUS_METERS}m of the shift location.`,
+          message: `You are ${Math.round(distance)}m away. Must be within ${ALLOWED_RADIUS}m of the shift location.`,
         });
       }
     }
 
-    // 5. Calculate late minutes
+    // 6. Calculate late minutes (only count time beyond grace period)
     const now = new Date();
     const scheduledStart = buildShiftDateTime(shift.date, shift.startTime);
     const diffMinutes = Math.floor(
@@ -113,8 +132,8 @@ const clockIn = async (req, res) => {
     let lateMinutes = 0;
     let status = 'on-time';
 
-    if (diffMinutes > GRACE_PERIOD_MINUTES) {
-      lateMinutes = diffMinutes;
+    if (diffMinutes > GRACE_PERIOD) {
+      lateMinutes = diffMinutes - GRACE_PERIOD;
       status = 'late';
     }
 
@@ -181,7 +200,11 @@ const clockOut = async (req, res) => {
       return res.status(404).json({ message: 'Shift not found' });
     }
 
-    // 4. Calculate extra hours
+    // 4. Load settings for grace period
+    const settings = await getSettings();
+    const GRACE_PERIOD = settings.gracePeriodMinutes || 10;
+
+    // 5. Calculate extra hours
     const now = new Date();
     const scheduledEnd = buildShiftDateTime(shift.date, shift.endTime);
     const outDiffMinutes = Math.floor(
@@ -189,14 +212,14 @@ const clockOut = async (req, res) => {
     );
 
     let extraHours = 0;
-    if (outDiffMinutes > GRACE_PERIOD_MINUTES) {
+    if (outDiffMinutes > GRACE_PERIOD) {
       extraHours = parseFloat((outDiffMinutes / 60).toFixed(2));
     }
 
-    // 5. Final status
-    let finalStatus = attendance.status; // keep 'late' if it was late
+    // 6. Final status — preserve 'late' info when overtime applies
+    let finalStatus = attendance.status;
     if (extraHours > 0) {
-      finalStatus = 'overtime';
+      finalStatus = attendance.status === 'late' ? 'late-overtime' : 'overtime';
     }
 
     // 6. Update

@@ -13,6 +13,9 @@ let passed = 0;
 let failed = 0;
 const results = [];
 
+// Dynamic far-future year so re-runs never overlap previous leave records
+const _testYear = 2050 + (Math.floor(Date.now() / 1000) % 9000);
+
 function req(method, path, body, token) {
     return new Promise((resolve, reject) => {
         const url = new URL(BASE + path);
@@ -164,11 +167,14 @@ async function run() {
     // ════════════════════════════════════════════════════════════
     console.log('\n🏖️  LEAVE TESTS');
 
+    // Reset staff annual leave balance so tests are idempotent across re-runs
+    await req('PUT', `/users/${staffId}`, { annualLeaveBalance: 224 }, adminToken);
+
     // 5a. Staff requests annual leave
     r = await req('POST', '/leave', {
         leaveType: 'annual',
-        startDate: '2026-06-01',
-        endDate: '2026-06-05',
+        startDate: `${_testYear}-06-01`,
+        endDate: `${_testYear}-06-05`,
         reason: 'Summer holiday',
     }, staffToken);
     test('Staff request leave', r.status === 201, `status=${r.status} msg=${r.body?.message}`);
@@ -190,6 +196,8 @@ async function run() {
     if (leaveId) {
         r = await req('PUT', `/leave/${leaveId}/approve`, null, adminToken);
         test('Admin approve leave', r.status === 200 && r.body.status === 'approved', `status=${r.status} msg=${r.body?.message}`);
+    } else {
+        test('Admin approve leave', false, 'skipped — leave not created');
     }
 
     // 5f. Check balance deducted
@@ -199,8 +207,8 @@ async function run() {
     // 5g. Request another leave, admin rejects
     r = await req('POST', '/leave', {
         leaveType: 'annual',
-        startDate: '2026-07-01',
-        endDate: '2026-07-02',
+        startDate: `${_testYear}-07-01`,
+        endDate: `${_testYear}-07-02`,
         reason: 'Doctor appointment',
     }, staffToken);
     const rejectLeaveId = r.body?._id;
@@ -208,13 +216,15 @@ async function run() {
     if (rejectLeaveId) {
         r = await req('PUT', `/leave/${rejectLeaveId}/reject`, { reason: 'Short staffed' }, adminToken);
         test('Admin reject leave', r.status === 200 && r.body.status === 'rejected', `status=${r.status}`);
+    } else {
+        test('Admin reject leave', false, 'skipped — leave not created');
     }
 
     // 5h. Staff cancels own pending leave
     r = await req('POST', '/leave', {
         leaveType: 'sick',
-        startDate: '2026-03-05',
-        endDate: '2026-03-05',
+        startDate: `${_testYear}-08-10`,
+        endDate: `${_testYear}-08-10`,
     }, staffToken);
     const cancelId = r.body?._id;
 
@@ -226,8 +236,8 @@ async function run() {
     // 5i. Insufficient balance check
     r = await req('POST', '/leave', {
         leaveType: 'annual',
-        startDate: '2026-01-01',
-        endDate: '2026-12-31',
+        startDate: `${_testYear + 1}-01-01`,
+        endDate: `${_testYear + 1}-12-31`,
     }, staffToken);
     test('Insufficient balance blocked', r.status === 400 || r.status === 409, `status=${r.status} msg=${r.body?.message}`);
 

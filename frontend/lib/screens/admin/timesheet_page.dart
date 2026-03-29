@@ -3,7 +3,6 @@
 // Phase 3: Admin view of all attendance records.
 // Filterable by date and staff member.
 
-import "dart:io";
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 
@@ -375,16 +374,24 @@ class _AttendanceCard extends StatelessWidget {
   }
 
   Widget _photo() {
-    if (record.photoInPath != null) {
+    if (record.photoInPath != null && record.photoInPath!.startsWith('http')) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
           width: 48,
           height: 48,
-          child: Image.file(File(record.photoInPath!), fit: BoxFit.cover),
+          child: Image.network(
+            record.photoInPath!,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _photoPlaceholder(),
+          ),
         ),
       );
     }
+    return _photoPlaceholder();
+  }
+
+  Widget _photoPlaceholder() {
     return Container(
       width: 48,
       height: 48,

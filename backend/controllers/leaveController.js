@@ -1,5 +1,6 @@
 const Leave = require('../models/Leave');
 const User = require('../models/User');
+const Settings = require('../models/Settings');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -247,17 +248,17 @@ const cancelLeave = async (req, res) => {
                 .json({ message: 'Not authorized to cancel this request' });
         }
 
-        if (leave.status === 'approved' && leave.leaveType === 'annual') {
-            // Refund the balance if it was already approved
-            const user = await User.findById(leave.staffId);
-            user.annualLeaveBalance += leave.totalHours;
-            await user.save();
-        }
-
         if (leave.status !== 'pending' && leave.status !== 'approved') {
             return res.status(400).json({
                 message: `Cannot cancel a leave request that is already ${leave.status}`,
             });
+        }
+
+        if (leave.status === 'approved' && leave.leaveType === 'annual') {
+            // Refund the balance since it was already approved
+            const user = await User.findById(leave.staffId);
+            user.annualLeaveBalance += leave.totalHours;
+            await user.save();
         }
 
         leave.status = 'cancelled';
@@ -435,11 +436,15 @@ const getLeaveBalance = async (req, res) => {
         const annualUsed = leaveUsed.annual?.hours || 0;
         const annualPending = leavePending.annual?.hours || 0;
 
+        // Get configurable entitlement from Settings
+        const settings = await Settings.findOne({ key: 'global' });
+        const annualEntitlement = settings?.annualLeaveHours || 224;
+
         res.json({
             staffId: user._id,
             staffName: user.name,
             weeklyHours: user.weeklyHours || 40,
-            annualEntitlement: 224, // 40h × 5.6 weeks (UK statutory)
+            annualEntitlement,
             annualLeaveBalance: user.annualLeaveBalance,
             annualUsed,
             annualPending,

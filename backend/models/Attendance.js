@@ -40,7 +40,7 @@ const attendanceSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['on-time', 'late', 'overtime', 'absent'],
+      enum: ['on-time', 'late', 'overtime', 'late-overtime', 'absent'],
       default: 'on-time',
     },
     notes: {
@@ -59,5 +59,7 @@ const attendanceSchema = new mongoose.Schema(
 
 // Prevent duplicate clock-in: one attendance record per staff per shift
 attendanceSchema.index({ staffId: 1, shiftId: 1 }, { unique: true });
+// Index for date-range queries (timesheets, payroll generation)
+attendanceSchema.index({ staffId: 1, clockInTime: 1 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);

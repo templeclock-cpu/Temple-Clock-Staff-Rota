@@ -24,7 +24,8 @@ class PayrollService {
     final response = await _apiService.get(endpoint);
     final data = jsonDecode(response.body);
     if (response.statusCode == 200) {
-      return (data as List).map((e) => PayrollRecord.fromJson(e)).toList();
+      final list = data is List ? data : (data['payroll'] ?? []);
+      return (list as List).map((e) => PayrollRecord.fromJson(e)).toList();
     }
     throw Exception('Failed to fetch payroll');
   }
@@ -34,7 +35,8 @@ class PayrollService {
     final response = await _apiService.get('/payroll/$staffId$q');
     final data = jsonDecode(response.body);
     if (response.statusCode == 200) {
-      return (data as List).map((e) => PayrollRecord.fromJson(e)).toList();
+      final list = data is List ? data : (data['payroll'] ?? []);
+      return (list as List).map((e) => PayrollRecord.fromJson(e)).toList();
     }
     throw Exception('Failed to fetch staff payroll');
   }

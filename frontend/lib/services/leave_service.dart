@@ -22,8 +22,8 @@ class LeaveService {
     final data = jsonDecode(response.body);
 
     if (response.statusCode == 200) {
-      final list = data as List<dynamic>;
-      return list
+      final list = data is List ? data : (data['leaves'] ?? data['records'] ?? []);
+      return (list as List<dynamic>)
           .map((item) => LeaveRequest.fromJson(item as Map<String, dynamic>))
           .toList();
     }

@@ -4,6 +4,11 @@ const BASE = 'http://localhost:5000/api';
 let token = '';
 let payrollId = '';
 
+// Dynamic far-future month so re-runs don't hit already-finalized records
+const _runSec = Math.floor(Date.now() / 1000) % 9000;
+const _testYear = 2050 + _runSec;
+const testMonth = `${_testYear}-03`;
+
 function req(method, path, body, tok) {
     return new Promise((resolve, reject) => {
         const url = new URL(BASE + path);
@@ -35,13 +40,16 @@ async function run() {
     console.log(r.s === 200 ? '  ✅ Admin login' : '  ❌ Login failed');
 
     // Generate payroll
-    r = await req('POST', '/payroll/generate', { month: '2026-03' }, token);
+    r = await req('POST', '/payroll/generate', { month: testMonth }, token);
     console.log(r.s === 201 ? `  ✅ Generate payroll (${r.b.count} records)` : `  ❌ Generate: ${r.s} ${r.b.message || ''}`);
 
     // List payroll
-    r = await req('GET', '/payroll?month=2026-03', null, token);
+    r = await req('GET', `/payroll?month=${testMonth}`, null, token);
     console.log(r.s === 200 ? `  ✅ List payroll (${r.b.length} records)` : `  ❌ List: ${r.s}`);
-    if (r.b.length > 0) payrollId = r.b[0]._id;
+    if (r.b.length > 0) {
+        const draft = r.b.find(rec => rec.status !== 'finalized');
+        payrollId = draft ? draft._id : '';
+    }
 
     // Adjust
     if (payrollId) {
@@ -60,7 +68,7 @@ async function run() {
     // Staff can't access payroll
     r = await req('POST', '/auth/login', { email: 'staff@careshift.co.uk', password: 'Staff@123' });
     const staffTok = r.b.token;
-    r = await req('GET', '/payroll?month=2026-03', null, staffTok);
+    r = await req('GET', `/payroll?month=${testMonth}`, null, staffTok);
     console.log(r.s === 403 ? '  ✅ Staff blocked from payroll' : `  ❌ Staff access: ${r.s}`);
 
     console.log('\n' + '='.repeat(40) + '\n');
