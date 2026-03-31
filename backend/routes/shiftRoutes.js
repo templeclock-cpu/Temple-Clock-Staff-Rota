@@ -8,7 +8,7 @@ const {
   deleteShift,
   getShiftStats,
 } = require('../controllers/shiftController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, validateObjectId } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ router.get('/my-shifts', getShifts);
 router.get('/', getShifts);
 
 // GET /api/shifts/:id - Get single shift
-router.get('/:id', getShiftById);
+router.get('/:id', validateObjectId, getShiftById);
 
 // POST /api/shifts - Create shift (admin only)
 router.post(
@@ -41,9 +41,9 @@ router.post(
 );
 
 // PUT /api/shifts/:id - Update shift (admin only)
-router.put('/:id', authorize('admin'), updateShift);
+router.put('/:id', validateObjectId, authorize('admin'), updateShift);
 
 // DELETE /api/shifts/:id - Delete shift (admin only)
-router.delete('/:id', authorize('admin'), deleteShift);
+router.delete('/:id', validateObjectId, authorize('admin'), deleteShift);
 
 module.exports = router;

@@ -6,7 +6,7 @@ const {
     adjustPayroll,
     finalizePayroll,
 } = require('../controllers/payrollController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, validateObjectId } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -21,12 +21,12 @@ router.get('/', getPayroll);
 router.post('/generate', generatePayroll);
 
 // GET /api/payroll/:staffId - Get single staff's payroll history
-router.get('/:staffId', getStaffPayroll);
+router.get('/:staffId', validateObjectId, getStaffPayroll);
 
 // PUT /api/payroll/:id/adjust - Add adjustment to payroll record
-router.put('/:id/adjust', adjustPayroll);
+router.put('/:id/adjust', validateObjectId, adjustPayroll);
 
 // PUT /api/payroll/:id/finalize - Lock payroll record
-router.put('/:id/finalize', finalizePayroll);
+router.put('/:id/finalize', validateObjectId, finalizePayroll);
 
 module.exports = router;

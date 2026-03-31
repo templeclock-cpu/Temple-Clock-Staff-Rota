@@ -5,7 +5,7 @@ const User = require('../models/User');
 // @access  Private/Admin
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find({ isActive: true }).sort({ name: 1 });
+    const users = await User.find({ isActive: true }).select('-password').sort({ name: 1 });
     res.json(users);
   } catch (error) {
     console.error('GetUsers error:', error.message);
@@ -18,7 +18,7 @@ const getUsers = async (req, res) => {
 // @access  Private
 const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).select('-password');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -119,7 +119,9 @@ const updateUser = async (req, res) => {
     if (profileImage !== undefined) user.profileImage = profileImage;
 
     const updatedUser = await user.save();
-    res.json(updatedUser);
+    const userObj = updatedUser.toObject();
+    delete userObj.password;
+    res.json(userObj);
   } catch (error) {
     console.error('UpdateUser error:', error.message);
     res.status(500).json({ message: 'Server error' });
@@ -143,7 +145,9 @@ const updateMyProfile = async (req, res) => {
     if (profileImage !== undefined) user.profileImage = profileImage;
 
     const updatedUser = await user.save();
-    res.json(updatedUser);
+    const userObj = updatedUser.toObject();
+    delete userObj.password;
+    res.json(userObj);
   } catch (error) {
     console.error('UpdateMyProfile error:', error.message);
     res.status(500).json({ message: 'Server error' });

@@ -6,7 +6,7 @@ const {
     getQRHistory,
     expireQR,
 } = require('../controllers/qrController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, validateObjectId } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -27,6 +27,6 @@ router.post('/verify', verifyQR);
 router.get('/history', adminOnly, getQRHistory);
 
 // PUT /api/qr/:id/expire — Admin manually expires a QR
-router.put('/:id/expire', adminOnly, expireQR);
+router.put('/:id/expire', validateObjectId, adminOnly, expireQR);
 
 module.exports = router;

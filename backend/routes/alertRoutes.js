@@ -9,7 +9,7 @@ const {
     markAlertRead,
     getUnreadCount,
 } = require('../controllers/alertController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, validateObjectId } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -34,9 +34,9 @@ router.get('/', authorize('admin'), getAlerts);
 router.get('/unread-count', authorize('admin'), getUnreadCount);
 
 // Staff: mark own alert as read
-router.put('/:id/read-staff', markAlertReadByStaff);
+router.put('/:id/read-staff', validateObjectId, markAlertReadByStaff);
 
 // Admin: mark alert as read
-router.put('/:id/read', authorize('admin'), markAlertRead);
+router.put('/:id/read', validateObjectId, authorize('admin'), markAlertRead);
 
 module.exports = router;

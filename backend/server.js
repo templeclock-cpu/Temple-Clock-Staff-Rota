@@ -29,8 +29,21 @@ app.use(compression());
 // Global rate limiter — 100 req/min per IP
 app.use('/api/', apiLimiter);
 
-// Allow requests from Flutter app (any origin in dev)
-app.use(cors());
+// Allow requests from Flutter app (restrict origins in production)
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:8080',
+  'http://localhost:3000',
+  'http://localhost:5000',
+];
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 
 // Parse JSON request bodies (10mb limit for base64 image uploads)
 app.use(express.json({ limit: '10mb' }));

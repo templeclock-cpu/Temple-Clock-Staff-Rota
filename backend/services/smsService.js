@@ -37,7 +37,7 @@ init();
  */
 async function sendSMS(to, message) {
     if (!enabled || !client) {
-        console.log(`[SMS skipped] To: ${to} | ${message}`);
+        console.log(`[SMS skipped] To: ${to.slice(0, 4)}***`);
         return null;
     }
 
@@ -47,10 +47,10 @@ async function sendSMS(to, message) {
             from: fromNumber,
             body: message,
         });
-        console.log(`[SMS sent] SID: ${result.sid} To: ${to}`);
+        console.log(`[SMS sent] SID: ${result.sid}`);
         return result;
     } catch (error) {
-        console.error(`[SMS error] To: ${to} | ${error.message}`);
+        console.error(`[SMS error] ${error.message}`);
         return null;
     }
 }

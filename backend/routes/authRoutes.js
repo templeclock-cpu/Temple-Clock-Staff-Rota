@@ -31,7 +31,7 @@ router.post(
 // GET /api/auth/me (get logged-in user's profile)
 router.get('/me', protect, getMe);
 
-// PUT /api/auth/reset-password
-router.put('/reset-password', resetPassword);
+// PUT /api/auth/reset-password (requires authentication)
+router.put('/reset-password', protect, resetPassword);
 
 module.exports = router;

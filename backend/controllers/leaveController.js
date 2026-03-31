@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Leave = require('../models/Leave');
 const User = require('../models/User');
 const Settings = require('../models/Settings');
@@ -13,6 +14,9 @@ function countWorkingDays(start, end) {
     d.setHours(0, 0, 0, 0);
     const endDate = new Date(end);
     endDate.setHours(0, 0, 0, 0);
+
+    // Guard: prevent infinite loop if start > end
+    if (d > endDate) return 0;
 
     while (d <= endDate) {
         const day = d.getDay();
@@ -321,7 +325,6 @@ const getLeaveRequests = async (req, res) => {
 // @access  Private
 const getLeaveById = async (req, res) => {
     try {
-        const mongoose = require('mongoose');
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({ message: 'Invalid leave request ID' });
         }

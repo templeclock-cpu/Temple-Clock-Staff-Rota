@@ -41,7 +41,17 @@ const updateSettings = async (req, res) => {
 
         for (const field of allowedFields) {
             if (req.body[field] !== undefined) {
-                settings[field] = req.body[field];
+                const val = req.body[field];
+                // Type & bounds validation for numeric fields
+                if (['gracePeriodMinutes', 'geofenceRadius', 'annualLeaveHours',
+                     'minNoticeDays', 'defaultHourlyRate', 'overtimeMultiplier'].includes(field)) {
+                    if (typeof val !== 'number' || val < 0) continue; // skip invalid
+                }
+                if (['geofenceEnabled', 'requireLeaveApproval',
+                     'emailNotifications', 'pushNotifications'].includes(field)) {
+                    if (typeof val !== 'boolean') continue; // skip invalid
+                }
+                settings[field] = val;
             }
         }
 

@@ -20,7 +20,7 @@ const register = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, role, hourlyRate, phone, department } = req.body;
+    const { name, email, password, hourlyRate, phone, department } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -28,12 +28,12 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    // Create new user
+    // Create new user (public registration always creates staff — admin uses /api/users)
     const user = await User.create({
       name,
       email,
       password,
-      role: role || 'staff',
+      role: 'staff',
       hourlyRate: hourlyRate || 0,
       phone,
       department,
@@ -113,9 +113,9 @@ const getMe = async (req, res) => {
   }
 };
 
-// @desc    Reset password (user enters email + new password)
+// @desc    Reset password (admin resets for any user, staff resets own)
 // @route   PUT /api/auth/reset-password
-// @access  Public
+// @access  Private
 const resetPassword = async (req, res) => {
   try {
     const { email, newPassword } = req.body;
@@ -131,6 +131,11 @@ const resetPassword = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(404).json({ message: 'No account found with this email' });
+    }
+
+    // Staff can only reset their own password
+    if (req.user.role !== 'admin' && req.user._id.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to reset this password' });
     }
 
     user.password = newPassword; // pre-save hook will bcrypt it

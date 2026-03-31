@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 // Protect routes - verify JWT token
@@ -46,4 +47,15 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, authorize };
+// Validate that :id route params are valid MongoDB ObjectIds
+const validateObjectId = (req, res, next) => {
+  if (req.params.id && !mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: 'Invalid ID format' });
+  }
+  if (req.params.staffId && !mongoose.Types.ObjectId.isValid(req.params.staffId)) {
+    return res.status(400).json({ message: 'Invalid staff ID format' });
+  }
+  next();
+};
+
+module.exports = { protect, authorize, validateObjectId };

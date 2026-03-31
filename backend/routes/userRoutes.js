@@ -1,6 +1,6 @@
 const express = require('express');
 const { getUsers, getUserById, createUser, updateUser, updateMyProfile, deleteUser } = require('../controllers/userController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, validateObjectId } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -17,12 +17,12 @@ router.post('/', authorize('admin'), createUser);
 router.put('/me', updateMyProfile);
 
 // GET /api/users/:id - Get single user
-router.get('/:id', getUserById);
+router.get('/:id', validateObjectId, getUserById);
 
 // PUT /api/users/:id - Update user (admin only)
-router.put('/:id', authorize('admin'), updateUser);
+router.put('/:id', validateObjectId, authorize('admin'), updateUser);
 
 // DELETE /api/users/:id - Deactivate user (admin only)
-router.delete('/:id', authorize('admin'), deleteUser);
+router.delete('/:id', validateObjectId, authorize('admin'), deleteUser);
 
 module.exports = router;

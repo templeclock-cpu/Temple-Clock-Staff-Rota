@@ -8,7 +8,7 @@ const {
   getAttendanceById,
   getAttendanceStatsToday,
 } = require('../controllers/attendanceController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, validateObjectId } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ router.get('/my-history', getAttendance);
 router.get('/', getAttendance);
 
 // GET /api/attendance/:id - Single record
-router.get('/:id', getAttendanceById);
+router.get('/:id', validateObjectId, getAttendanceById);
 
 // POST /api/attendance/clock-in
 router.post(
@@ -46,6 +46,6 @@ router.post(
 );
 
 // PUT /api/attendance/:id/override - Admin override
-router.put('/:id/override', authorize('admin'), adminOverride);
+router.put('/:id/override', validateObjectId, authorize('admin'), adminOverride);
 
 module.exports = router;
