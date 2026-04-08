@@ -257,17 +257,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
         titleSpacing: 16,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.teal.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.health_and_safety_rounded,
-                  size: 16, color: AppColors.teal),
-            ),
+            Image.asset('assets/images/logo.png', height: 24),
             const SizedBox(width: 8),
-            const Text('CareShift',
+            const Text('Temple Clock',
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
           ],
         ),
@@ -461,7 +453,7 @@ class _AdminOverviewPageState extends State<_AdminOverviewPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('CareShift Admin',
+                        Text('Temple Clock Admin',
                             style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w900,

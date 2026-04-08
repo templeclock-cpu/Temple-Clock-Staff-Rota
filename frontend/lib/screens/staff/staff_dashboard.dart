@@ -187,17 +187,9 @@ class _StaffDashboardState extends State<StaffDashboard>
         titleSpacing: 16,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00BFA5).withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.health_and_safety_rounded,
-                  size: 16, color: Color(0xFF00BFA5)),
-            ),
+            Image.asset('assets/images/logo.png', height: 24),
             const SizedBox(width: 8),
-            const Text('CareShift',
+            const Text('Temple Clock',
                 style: TextStyle(
                     fontFamily: 'Outfit',
                     fontWeight: FontWeight.w800,

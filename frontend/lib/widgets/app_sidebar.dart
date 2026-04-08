@@ -90,17 +90,9 @@ class _AppSidebarState extends State<AppSidebar>
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: AppColors.teal.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.health_and_safety_rounded,
-                        size: 18, color: AppColors.teal),
-                  ),
+                  Image.asset('assets/images/logo.png', height: 28),
                   const SizedBox(width: 10),
-                  const Text('CareShift',
+                  const Text('Temple Clock',
                       style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
