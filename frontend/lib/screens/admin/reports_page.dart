@@ -55,7 +55,7 @@ class _ReportsPageState extends State<ReportsPage> {
         icon: Icons.calendar_month,
         color: const Color(0xFF1565C0),
         endpoint: '/reports/rota',
-        filename: 'CareShift_Rota',
+        filename: 'TempleClock_Rota',
       ),
       _ReportType(
         title: 'Attendance Report',
@@ -63,7 +63,7 @@ class _ReportsPageState extends State<ReportsPage> {
         icon: Icons.schedule,
         color: AppColors.teal,
         endpoint: '/reports/attendance',
-        filename: 'CareShift_Attendance',
+        filename: 'TempleClock_Attendance',
       ),
       _ReportType(
         title: 'Payroll Report',
@@ -71,7 +71,7 @@ class _ReportsPageState extends State<ReportsPage> {
         icon: Icons.payments,
         color: const Color(0xFF7B1FA2),
         endpoint: '/reports/payroll',
-        filename: 'CareShift_Payroll',
+        filename: 'TempleClock_Payroll',
       ),
       _ReportType(
         title: 'Staff Report',
@@ -79,7 +79,7 @@ class _ReportsPageState extends State<ReportsPage> {
         icon: Icons.people,
         color: const Color(0xFFE65100),
         endpoint: '/reports/staff',
-        filename: 'CareShift_Staff',
+        filename: 'TempleClock_Staff',
       ),
       _ReportType(
         title: 'Leave Report',
@@ -87,7 +87,7 @@ class _ReportsPageState extends State<ReportsPage> {
         icon: Icons.beach_access,
         color: const Color(0xFF00838F),
         endpoint: '/reports/leave',
-        filename: 'CareShift_Leave',
+        filename: 'TempleClock_Leave',
       ),
     ];
 

@@ -23,7 +23,7 @@ class AppRadius {
 }
 
 class AppConstants {
-  static const String appName = 'CareShift';
+  static const String appName = 'Temple Clock';
   
   // API Configuration
   // For Android Emulator, use 10.0.2.2 instead of localhost

@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "postinstall": "cd backend && npm install",
-    "dev:backend": "cd backend && npm run dev",
+    "dev:backend": "cd backend && nprun dev",
     "seed:backend": "cd backend && npm run seed",
-    "test:api": "cd backend && node test_api.js"
+    "test:api": "cd backend && node test_api.js",
+    "start": "cd backend && npm start"
   }
 }

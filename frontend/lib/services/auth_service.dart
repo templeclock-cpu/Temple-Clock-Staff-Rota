@@ -45,4 +45,19 @@ class AuthService {
     }
     return null;
   }
+
+  Future<Map<String, dynamic>> resetPassword(String email, String newPassword) async {
+    final response = await _apiService.put('/auth/reset-password', {
+      'email': email,
+      'newPassword': newPassword,
+    });
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return {'success': true, 'message': data['message'] ?? 'Password reset successfully'};
+    } else {
+      return {'success': false, 'message': data['message'] ?? 'Password reset failed'};
+    }
+  }
 }

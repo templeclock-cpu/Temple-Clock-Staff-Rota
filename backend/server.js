@@ -20,16 +20,8 @@ const app = express();
 // Trust proxy if behind a load balancer / reverse proxy (Nginx, ALB, etc.)
 app.set('trust proxy', 1);
 
-// Security HTTP headers (HSTS, X-Frame-Options, X-Content-Type, etc.)
-app.use(helmet());
-
-// Gzip / Brotli compression for all responses (reduces payload ~70%)
-app.use(compression());
-
-// Global rate limiter — 100 req/min per IP
-app.use('/api/', apiLimiter);
-
-// Allow requests from Flutter app (restrict origins in production)
+// ── CORS must come FIRST so that OPTIONS preflight requests get headers
+// ── before helmet / rate-limiter can reject them.
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:8080',
   'http://localhost:3000',
@@ -40,10 +32,23 @@ app.use(cors({
     // Allow requests with no origin (mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
+    // In development, allow any localhost origin (Flutter web uses random ports)
+    if (process.env.NODE_ENV !== 'production' && origin && origin.match(/^http:\/\/localhost(:\d+)?$/)) {
+      return callback(null, true);
+    }
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
+
+// Security HTTP headers (HSTS, X-Frame-Options, X-Content-Type, etc.)
+app.use(helmet());
+
+// Gzip / Brotli compression for all responses (reduces payload ~70%)
+app.use(compression());
+
+// Global rate limiter — 100 req/min per IP
+app.use('/api/', apiLimiter);
 
 // Parse JSON request bodies (10mb limit for base64 image uploads)
 app.use(express.json({ limit: '10mb' }));

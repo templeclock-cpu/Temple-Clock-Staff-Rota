@@ -187,17 +187,9 @@ class _StaffDashboardState extends State<StaffDashboard>
         titleSpacing: 16,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00BFA5).withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.health_and_safety_rounded,
-                  size: 16, color: Color(0xFF00BFA5)),
-            ),
+            Image.asset('assets/images/logo.png', height: 24),
             const SizedBox(width: 8),
-            const Text('CareShift',
+            const Text('Temple Clock',
                 style: TextStyle(
                     fontFamily: 'Outfit',
                     fontWeight: FontWeight.w800,
@@ -1049,12 +1041,78 @@ class _ClockButton extends StatelessWidget {
 
 // ─── Profile Tab ──────────────────────────────────────────────────────────────
 
-class _ProfileTab extends StatelessWidget {
+class _ProfileTab extends StatefulWidget {
   final UserModel user;
   const _ProfileTab({required this.user});
 
+  @override
+  State<_ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<_ProfileTab> {
   static const Color _navy = Color(0xFF1A2B4A);
   static const Color _teal = Color(0xFF00BFA5);
+
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _passwordLoading = false;
+  bool _showNewPassword = false;
+  bool _showConfirmPassword = false;
+
+  @override
+  void dispose() {
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleResetPassword() async {
+    final newPass = _newPasswordController.text.trim();
+    final confirmPass = _confirmPasswordController.text.trim();
+
+    if (newPass.isEmpty || confirmPass.isEmpty) {
+      showAppSnackBar(context, 'Please fill in all fields', isError: true);
+      return;
+    }
+    if (newPass.length < 6) {
+      showAppSnackBar(context, 'Password must be at least 6 characters', isError: true);
+      return;
+    }
+    if (newPass != confirmPass) {
+      showAppSnackBar(context, 'Passwords do not match', isError: true);
+      return;
+    }
+
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Reset Password',
+      message: 'Are you sure you want to change your password?',
+      confirmLabel: 'Reset',
+      isDestructive: true,
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _passwordLoading = true);
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final result = await authService.resetPassword(widget.user.email, newPass);
+
+      if (!mounted) return;
+      if (result['success'] == true) {
+        _newPasswordController.clear();
+        _confirmPasswordController.clear();
+        showAppSnackBar(context, result['message'] ?? 'Password reset successfully');
+      } else {
+        showAppSnackBar(context, result['message'] ?? 'Password reset failed', isError: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        showAppSnackBar(context, 'Error: ${e.toString()}', isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _passwordLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1090,7 +1148,7 @@ class _ProfileTab extends StatelessWidget {
                     radius: 40,
                     backgroundColor: _teal,
                     child: Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : "?",
+                      widget.user.name.isNotEmpty ? widget.user.name[0].toUpperCase() : "?",
                       style: const TextStyle(
                         fontFamily: "Outfit",
                         fontSize: 32,
@@ -1101,7 +1159,7 @@ class _ProfileTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    user.name,
+                    widget.user.name,
                     style: const TextStyle(
                       fontFamily: "Outfit",
                       fontSize: 20,
@@ -1117,7 +1175,7 @@ class _ProfileTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      user.role.toUpperCase(),
+                      widget.user.role.toUpperCase(),
                       style: const TextStyle(
                         fontFamily: "Outfit",
                         fontSize: 11,
@@ -1129,7 +1187,7 @@ class _ProfileTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    user.email,
+                    widget.user.email,
                     style: TextStyle(
                       fontFamily: "Outfit",
                       fontSize: 13,
@@ -1147,8 +1205,8 @@ class _ProfileTab extends StatelessWidget {
                 Expanded(
                   child: _StatMini(
                     label: 'Hourly Rate',
-                    value: user.hourlyRate != null
-                        ? '\u00A3${user.hourlyRate!.toStringAsFixed(2)}'
+                    value: widget.user.hourlyRate != null
+                        ? '\u00A3${widget.user.hourlyRate!.toStringAsFixed(2)}'
                         : 'N/A',
                     icon: Icons.payments_outlined,
                     color: const Color(0xFF7B1FA2),
@@ -1158,8 +1216,8 @@ class _ProfileTab extends StatelessWidget {
                 Expanded(
                   child: _StatMini(
                     label: 'Weekly Hours',
-                    value: user.weeklyHours != null
-                        ? '${user.weeklyHours!.toStringAsFixed(0)}h'
+                    value: widget.user.weeklyHours != null
+                        ? '${widget.user.weeklyHours!.toStringAsFixed(0)}h'
                         : 'N/A',
                     icon: Icons.schedule_outlined,
                     color: const Color(0xFF1565C0),
@@ -1169,8 +1227,8 @@ class _ProfileTab extends StatelessWidget {
                 Expanded(
                   child: _StatMini(
                     label: 'Leave Balance',
-                    value: user.annualLeaveBalance != null
-                        ? '${user.annualLeaveBalance!.toStringAsFixed(0)} days'
+                    value: widget.user.annualLeaveBalance != null
+                        ? '${widget.user.annualLeaveBalance!.toStringAsFixed(0)} days'
                         : 'N/A',
                     icon: Icons.beach_access_outlined,
                     color: const Color(0xFF00838F),
@@ -1185,10 +1243,10 @@ class _ProfileTab extends StatelessWidget {
               title: 'Personal Information',
               icon: Icons.person_outline,
               children: [
-                _detailRow(Icons.badge_outlined, 'Employee ID', user.id.substring(user.id.length > 8 ? user.id.length - 8 : 0)),
-                _detailRow(Icons.email_outlined, 'Email', user.email),
-                _detailRow(Icons.phone_outlined, 'Phone', user.phone ?? 'Not set'),
-                _detailRow(Icons.business_outlined, 'Department', user.department ?? 'Not assigned'),
+                _detailRow(Icons.badge_outlined, 'Employee ID', widget.user.id.substring(widget.user.id.length > 8 ? widget.user.id.length - 8 : 0)),
+                _detailRow(Icons.email_outlined, 'Email', widget.user.email),
+                _detailRow(Icons.phone_outlined, 'Phone', widget.user.phone ?? 'Not set'),
+                _detailRow(Icons.business_outlined, 'Department', widget.user.department ?? 'Not assigned'),
               ],
             ),
             const SizedBox(height: 14),
@@ -1199,14 +1257,165 @@ class _ProfileTab extends StatelessWidget {
               icon: Icons.work_outline,
               children: [
                 _detailRow(Icons.payments_outlined, 'Hourly Rate',
-                    user.hourlyRate != null ? '\u00A3${user.hourlyRate!.toStringAsFixed(2)}/hr' : 'N/A'),
+                    widget.user.hourlyRate != null ? '\u00A3${widget.user.hourlyRate!.toStringAsFixed(2)}/hr' : 'N/A'),
                 _detailRow(Icons.schedule_outlined, 'Weekly Hours',
-                    user.weeklyHours != null ? '${user.weeklyHours!.toStringAsFixed(0)} hours' : 'N/A'),
+                    widget.user.weeklyHours != null ? '${widget.user.weeklyHours!.toStringAsFixed(0)} hours' : 'N/A'),
                 _detailRow(Icons.beach_access_outlined, 'Annual Leave',
-                    user.annualLeaveBalance != null ? '${user.annualLeaveBalance!.toStringAsFixed(1)} days remaining' : 'N/A'),
+                    widget.user.annualLeaveBalance != null ? '${widget.user.annualLeaveBalance!.toStringAsFixed(1)} days remaining' : 'N/A'),
                 _detailRow(Icons.check_circle_outline, 'Status',
-                    user.isActive ? 'Active' : 'Inactive'),
+                    widget.user.isActive ? 'Active' : 'Inactive'),
               ],
+            ),
+            const SizedBox(height: 14),
+
+            // ── Reset Password ──────────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD32F2F).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.lock_outline, size: 18, color: Color(0xFFD32F2F)),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Reset Password',
+                        style: TextStyle(
+                          fontFamily: "Outfit",
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: _navy,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Enter a new password below to change your login credentials.',
+                    style: TextStyle(
+                      fontFamily: "Outfit",
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // New password field
+                  TextField(
+                    controller: _newPasswordController,
+                    obscureText: !_showNewPassword,
+                    style: const TextStyle(fontFamily: "Outfit", fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: 'New Password',
+                      labelStyle: TextStyle(fontFamily: "Outfit", fontSize: 13, color: Colors.grey.shade600),
+                      prefixIcon: Icon(Icons.lock_outline, size: 18, color: Colors.grey.shade500),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _showNewPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          size: 18,
+                          color: Colors.grey.shade500,
+                        ),
+                        onPressed: () => setState(() => _showNewPassword = !_showNewPassword),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF5F7FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: _teal, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Confirm password field
+                  TextField(
+                    controller: _confirmPasswordController,
+                    obscureText: !_showConfirmPassword,
+                    style: const TextStyle(fontFamily: "Outfit", fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: 'Confirm New Password',
+                      labelStyle: TextStyle(fontFamily: "Outfit", fontSize: 13, color: Colors.grey.shade600),
+                      prefixIcon: Icon(Icons.lock_outline, size: 18, color: Colors.grey.shade500),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _showConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          size: 18,
+                          color: Colors.grey.shade500,
+                        ),
+                        onPressed: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF5F7FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: _teal, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Reset button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _passwordLoading ? null : _handleResetPassword,
+                      icon: _passwordLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.lock_reset_rounded, size: 18),
+                      label: Text(
+                        _passwordLoading ? 'Resetting...' : 'Reset Password',
+                        style: const TextStyle(
+                          fontFamily: "Outfit",
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD32F2F),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 80),
           ],

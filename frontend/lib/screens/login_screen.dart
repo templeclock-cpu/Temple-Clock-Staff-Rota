@@ -117,17 +117,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppColors.teal.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(Icons.health_and_safety_rounded,
-                            size: 44, color: AppColors.teal),
-                      ),
+                      Image.asset('assets/images/logo.png', height: 60),
                       const SizedBox(height: 28),
-                      const Text('CareShift',
+                      const Text('Temple Clock',
                           style: TextStyle(
                               fontSize: 42,
                               fontWeight: FontWeight.w900,
@@ -184,10 +176,9 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.health_and_safety_rounded,
-                      size: 36, color: AppColors.teal),
+                  Image.asset('assets/images/logo.png', height: 40),
                   const SizedBox(height: 14),
-                  const Text('CareShift',
+                  const Text('Temple Clock',
                       style: TextStyle(
                           fontSize: 30,
                           fontWeight: FontWeight.w900,
