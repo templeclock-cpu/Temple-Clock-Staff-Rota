@@ -922,7 +922,7 @@ class _StaffHomePageState extends State<_StaffHomePage> {
                   else
                     Row(
                       children: [
-                        if (canClockIn)
+                        if (canClockIn) ...[
                           Expanded(
                             child: _ClockButton(
                               label: "Clock In",
@@ -931,6 +931,15 @@ class _StaffHomePageState extends State<_StaffHomePage> {
                               onPressed: () => _openClockScreen(true, clientId: visit.clientId, clientName: visit.clientName),
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          // "Report Delay" Button
+                          _miniActionButton(
+                            icon: Icons.notification_important_outlined,
+                            color: Colors.orange.shade700,
+                            onPressed: () => _showReportDelayDialog(visit),
+                            tooltip: "Report Delay to Office",
+                          ),
+                        ],
                         if (canClockOut)
                           Expanded(
                             child: _ClockButton(
@@ -948,6 +957,113 @@ class _StaffHomePageState extends State<_StaffHomePage> {
           );
         }),
       ],
+    );
+  }
+
+        ],
+      ),
+    );
+  }
+
+  Widget _miniActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    String? tooltip,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: color, size: 18),
+        onPressed: onPressed,
+        tooltip: tooltip,
+        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+        padding: EdgeInsets.zero,
+      ),
+    );
+  }
+
+  Future<void> _showReportDelayDialog(ShiftVisit visit) async {
+    int delayMinutes = 15;
+    final reasonController = TextEditingController();
+    bool submitting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            "Report Delay: ${visit.clientName}",
+            style: const TextStyle(fontFamily: "Outfit", fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("How long will you be delayed?", style: TextStyle(fontSize: 14)),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<int>(
+                value: delayMinutes,
+                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                items: [15, 30, 45, 60]
+                    .map((m) => DropdownMenuItem(value: m, child: Text("$m Minutes")))
+                    .toList(),
+                onChanged: (val) => setState(() => delayMinutes = val!),
+              ),
+              const SizedBox(height: 16),
+              const Text("Reason (optional):", style: TextStyle(fontSize: 14)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: reasonController,
+                maxLines: 2,
+                decoration: const InputDecoration(border: OutlineInputBorder(), hintText: "Traffic, previous visit ran over..."),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting ? null : () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      setState(() => submitting = true);
+                      try {
+                        final alertService = Provider.of<AlertService>(context, listen: false);
+                        await alertService.reportDelay(
+                          shiftId: _todayShift!.id,
+                          clientId: visit.clientId,
+                          estimatedDelayMinutes: delayMinutes,
+                          message: reasonController.text.trim().isEmpty ? "Staff running late" : reasonController.text.trim(),
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Delay reported to Head Office")),
+                          );
+                        }
+                      } catch (e) {
+                         if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+                          );
+                         }
+                      } finally {
+                        if (context.mounted) setState(() => submitting = false);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade700, foregroundColor: Colors.white),
+              child: Text(submitting ? "Reporting..." : "Report Delay"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

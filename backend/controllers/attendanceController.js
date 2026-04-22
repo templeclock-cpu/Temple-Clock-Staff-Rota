@@ -138,7 +138,7 @@ const clockIn = async (req, res) => {
       }
     }
 
-    // 7. Calculate late minutes
+    // 7. Calculate late minutes with "Snap-to-Rota" logic
     const now = new Date();
     const scheduledStart = buildShiftDateTime(shift.date, expectedStartTime);
     const diffMinutes = Math.floor((now.getTime() - scheduledStart.getTime()) / 60000);
@@ -146,8 +146,9 @@ const clockIn = async (req, res) => {
     let lateMinutes = 0;
     let status = 'on-time';
 
+    // "Snap to Rota": If lateness is within grace period, we don't count it as late
     if (diffMinutes > GRACE_PERIOD) {
-      lateMinutes = diffMinutes - GRACE_PERIOD;
+      lateMinutes = diffMinutes; // Record actual late minutes for "major difference" tracking
       status = 'late';
     }
 
@@ -241,14 +242,19 @@ const clockOut = async (req, res) => {
     const outDiffMinutes = Math.floor((now.getTime() - scheduledEnd.getTime()) / 60000);
 
     let extraHours = 0;
+    let finalStatus = attendance.status;
+
+    // "Snap to Rota": 
+    // If clocked out slightly early (within grace period), ignore the difference.
+    // If clocked out LATER than scheduled + grace, calculate extra hours.
     if (outDiffMinutes > GRACE_PERIOD) {
       extraHours = parseFloat((outDiffMinutes / 60).toFixed(2));
-    }
-
-    let finalStatus = attendance.status;
-    if (extraHours > 0) {
       finalStatus = attendance.status === 'late' ? 'late-overtime' : 'overtime';
-    }
+    } else if (outDiffMinutes < -GRACE_PERIOD) {
+      // Major early departure: could mark as special status if needed
+      // For now, we just don't grant overtime
+    } 
+    // Otherwise it stays 'on-time' or 'late' as originally set at clock-in
 
     attendance.clockOutTime = now;
     attendance.extraHours = extraHours;
