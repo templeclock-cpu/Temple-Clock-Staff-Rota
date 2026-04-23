@@ -16,6 +16,7 @@
 //   9 = Settings
 //   10 = Sign Out
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
@@ -25,6 +26,7 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/rota_service.dart';
 import '../../services/attendance_service.dart';
+import '../../services/alert_service.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../widgets/app_sidebar.dart';
 import '../login_screen.dart';
@@ -52,6 +54,78 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
+  Timer? _alertTimer;
+  final Set<String> _notifiedAlertIds = {};
+
+  int _unreadAlertCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAlertPolling();
+  }
+
+  @override
+  void dispose() {
+    _alertTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startAlertPolling() {
+    // Initial check
+    _checkAlerts();
+    // Poll every 1 minute
+    _alertTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkAlerts());
+  }
+
+  Future<void> _checkAlerts() async {
+    try {
+      final alertSvc = Provider.of<AlertService>(context, listen: false);
+      final alerts = await alertSvc.getMyAlerts(unreadOnly: true);
+      
+      if (mounted) {
+        setState(() => _unreadAlertCount = alerts.length);
+      }
+
+      for (var alert in alerts) {
+        if (!_notifiedAlertIds.contains(alert.id)) {
+          _notifiedAlertIds.add(alert.id);
+          
+          if (mounted && alert.alertType == 'running_late') {
+            _showTopNotification(
+              "Staff Running Late",
+              alert.message.isNotEmpty ? alert.message : "A staff member reported a delay.",
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Alert polling error: $e");
+    }
+  }
+
+  void _showTopNotification(String title, String body) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(body, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+        backgroundColor: Colors.orange.shade800,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: "View",
+          textColor: Colors.white,
+          onPressed: () => setState(() => _selectedIndex = 7), // Navigate to Alerts
+        ),
+      ),
+    );
+  }
 
   // ── Nav items ──────────────────────────────────────────────────────────────
   static const _navItems = [
@@ -182,6 +256,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       icon: item.icon,
                       label: item.label,
                       selected: selected,
+                      badgeCount: i == 7 ? _unreadAlertCount : 0,
                       onTap: () {
                         Navigator.pop(ctx);
                         _onNavTap(i);
@@ -241,6 +316,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     icon: e.value.icon,
                     label: e.value.label,
                     index: e.key,
+                    badgeCount: e.key == 7 ? _unreadAlertCount : 0,
                     ))
                   .toList(),
                 onSignOut: _confirmSignOut,
@@ -746,12 +822,14 @@ class _MoreMenuItem extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final int badgeCount;
 
   const _MoreMenuItem({
     required this.icon,
     required this.label,
     required this.selected,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   @override
@@ -774,17 +852,42 @@ class _MoreMenuItem extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.teal.withValues(alpha: 0.12)
-                      : AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: FaIcon(icon,
-                    size: 18,
-                    color: selected ? AppColors.teal : AppColors.textMuted),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.teal.withValues(alpha: 0.12)
+                          : AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: FaIcon(icon,
+                        size: 18,
+                        color: selected ? AppColors.teal : AppColors.textMuted),
+                  ),
+                  if (badgeCount > 0)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          badgeCount > 9 ? '9+' : badgeCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 6),
               Text(label,

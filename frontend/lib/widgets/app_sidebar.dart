@@ -5,11 +5,13 @@ class SidebarItem {
   final IconData icon;
   final String label;
   final int index;
+  final int badgeCount;
 
   const SidebarItem({
     required this.icon,
     required this.label,
     required this.index,
+    this.badgeCount = 0,
   });
 }
 
@@ -325,7 +327,24 @@ class _AppSidebarState extends State<AppSidebar>
                         : Colors.white.withValues(alpha: 0.65),
                   ),
                 ),
-                if (selected) ...[
+                if (item.badgeCount > 0) ...[
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      item.badgeCount > 9 ? '9+' : item.badgeCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ] else if (selected) ...[
                   const Spacer(),
                   Container(
                     width: 4,

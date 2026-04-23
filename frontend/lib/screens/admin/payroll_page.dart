@@ -6,6 +6,7 @@ import '../../core/constants.dart';
 import '../../core/responsive.dart';
 import '../../models/payroll_model.dart';
 import '../../services/payroll_service.dart';
+import '../../services/export_service.dart';
 import '../../widgets/shared_widgets.dart';
 
 class PayrollPage extends StatefulWidget {
@@ -205,6 +206,20 @@ class _PayrollPageState extends State<PayrollPage> {
                     label: const Text('Generate'),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.teal,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Export Button
+                  IconButton(
+                    onPressed: () {
+                      ExportService.exportPayrollCsv(_records, "payroll_$_selectedMonth");
+                    },
+                    icon: const Icon(Icons.download, color: AppColors.teal),
+                    tooltip: 'Export to Excel/CSV',
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.teal.withValues(alpha: 0.1),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),

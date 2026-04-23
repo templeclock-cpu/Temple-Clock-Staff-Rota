@@ -11,6 +11,7 @@ import '../../models/rota_model.dart';
 import '../../models/user_model.dart';
 import '../../services/rota_service.dart';
 import '../../services/user_service.dart';
+import '../../services/export_service.dart';
 import '../../widgets/shared_widgets.dart';
 
 class AdminRotaPage extends StatefulWidget {
@@ -555,6 +556,21 @@ class _AdminRotaPageState extends State<AdminRotaPage> {
                     onPrev: _prevWeek,
                     onNext: _nextWeek,
                     onToday: _goToday,
+                  ),
+                  const SizedBox(width: 12),
+                  // Export Button
+                  IconButton(
+                    onPressed: () {
+                      final dateStr = DateFormat('yyyy-MM-dd').format(_weekStart);
+                      ExportService.exportRotaCsv(_shifts, "rota_$dateStr");
+                    },
+                    icon: const Icon(Icons.download, color: AppColors.teal),
+                    tooltip: 'Export Weekly Rota',
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.teal.withValues(alpha: 0.1),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
                   ),
                 ],
               ),

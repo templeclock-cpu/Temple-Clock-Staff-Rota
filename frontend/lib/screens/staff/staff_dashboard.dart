@@ -960,11 +960,6 @@ class _StaffHomePageState extends State<_StaffHomePage> {
     );
   }
 
-        ],
-      ),
-    );
-  }
-
   Widget _miniActionButton({
     required IconData icon,
     required Color color,

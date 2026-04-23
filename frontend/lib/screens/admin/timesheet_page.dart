@@ -8,6 +8,7 @@ import "package:intl/intl.dart";
 
 import "../../models/attendance_model.dart";
 import "../../services/attendance_service.dart";
+import "../../services/export_service.dart";
 
 class AdminTimesheetPage extends StatefulWidget {
   const AdminTimesheetPage({super.key});
@@ -107,6 +108,28 @@ class _AdminTimesheetPageState extends State<AdminTimesheetPage> {
             style: OutlinedButton.styleFrom(
               foregroundColor: _navy,
               side: const BorderSide(color: _navy),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Export Button
+          ElevatedButton.icon(
+            onPressed: () {
+              final dateStr = DateFormat("yyyy-MM-dd").format(_date);
+              ExportService.exportAttendanceCsv(_filtered, "timesheet_$dateStr");
+            },
+            icon: const Icon(Icons.download, size: 15),
+            label: const Text(
+              "Export",
+              style: TextStyle(fontFamily: "Outfit", fontSize: 13),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _teal,
+              foregroundColor: Colors.white,
+              elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),

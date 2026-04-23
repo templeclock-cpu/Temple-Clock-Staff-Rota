@@ -259,6 +259,13 @@ class _AlertTile extends StatelessWidget {
     }
   }
 
+  String get _displayEntityName {
+    if (alert.alertType == 'admin_notice') {
+      return 'To: ${alert.targetStaffName ?? 'Staff'}';
+    }
+    return alert.staffName ?? 'Unknown Staff';
+  }
+
   @override
   Widget build(BuildContext context) {
     final df = DateFormat('dd MMM yyyy, HH:mm');
@@ -309,7 +316,7 @@ class _AlertTile extends StatelessWidget {
                               color: _color)),
                     ),
                     const SizedBox(width: 6),
-                    Text(alert.staffName ?? '',
+                    Text(_displayEntityName,
                         style: const TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 13)),
                     if (alert.estimatedDelay > 0) ...[
