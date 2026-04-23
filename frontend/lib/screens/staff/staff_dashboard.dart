@@ -42,17 +42,66 @@ class _StaffDashboardState extends State<StaffDashboard>
   int _selectedIndex = 0;
   int _unreadAlertCount = 0;
 
+  Timer? _alertTimer;
+
   @override
   void initState() {
     super.initState();
+    _startAlertPolling();
+  }
+
+  @override
+  void dispose() {
+    _alertTimer?.cancel();
+    super.dispose();
+  }
+
+  final Set<String> _notifiedAlertIds = {};
+
+  void _startAlertPolling() {
+    // Initial check
     _loadUnreadCount();
+    // Poll every 15 seconds for responsiveness
+    _alertTimer = Timer.periodic(const Duration(seconds: 15), (_) => _loadUnreadCount());
   }
 
   Future<void> _loadUnreadCount() async {
     try {
       final alertService = Provider.of<AlertService>(context, listen: false);
-      final count = await alertService.getMyUnreadCount();
-      if (mounted) setState(() => _unreadAlertCount = count);
+      final alerts = await alertService.getMyAlerts(unreadOnly: true);
+      
+      if (mounted) {
+        setState(() => _unreadAlertCount = alerts.length);
+      }
+
+      for (var alert in alerts) {
+        if (!_notifiedAlertIds.contains(alert.id)) {
+          _notifiedAlertIds.add(alert.id);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('New Notice', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(alert.message, style: const TextStyle(fontSize: 12)),
+                  ],
+                ),
+                backgroundColor: Colors.orange.shade800,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: "View",
+                  textColor: Colors.white,
+                  onPressed: _showNotifications,
+                ),
+              ),
+            );
+          }
+        }
+      }
     } catch (_) {}
   }
 

@@ -74,8 +74,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void _startAlertPolling() {
     // Initial check
     _checkAlerts();
-    // Poll every 1 minute
-    _alertTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkAlerts());
+    // Poll every 15 seconds
+    _alertTimer = Timer.periodic(const Duration(seconds: 15), (_) => _checkAlerts());
   }
 
   Future<void> _checkAlerts() async {
@@ -347,7 +347,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
           IconButton(
             onPressed: () => _onNavTap(7),
             tooltip: 'Alerts',
-            icon: const Icon(Icons.notifications_outlined, size: 20),
+            icon: Badge(
+              isLabelVisible: _unreadAlertCount > 0,
+              label: Text(
+                _unreadAlertCount > 9 ? '9+' : _unreadAlertCount.toString(),
+                style: const TextStyle(fontSize: 10),
+              ),
+              child: const Icon(Icons.notifications_outlined, size: 20),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 14),
