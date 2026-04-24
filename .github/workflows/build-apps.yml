@@ -1,0 +1,185 @@
+name: Build Temple Clock Apps
+
+on:
+  push:
+    branches: [3rd-Branch]
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────
+  # JOB 1: Build Android APK
+  # ──────────────────────────────────────────────────────────────────
+  build-android:
+    name: 🤖 Build Android APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: stable
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TempleClockAndroid-APK
+          path: frontend/build/app/outputs/flutter-apk/app-release.apk
+
+  # ──────────────────────────────────────────────────────────────────
+  # JOB 2: Build Windows EXE
+  # ──────────────────────────────────────────────────────────────────
+  build-windows:
+    name: 🪟 Build Windows EXE
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: stable
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: TempleClockWindows-EXE
+          path: frontend/build/windows/x64/runner/Release/
+
+  # ──────────────────────────────────────────────────────────────────
+  # JOB 3: Build iOS App (unsigned - for testing)
+  # ──────────────────────────────────────────────────────────────────
+  build-ios:
+    name: 🍎 Build iOS App
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: stable
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build iOS (unsigned)
+        run: flutter build ios --release --no-codesign
+
+      - name: Zip iOS Build
+        run: |
+          cd build/ios/iphoneos
+          zip -r ../../../TempleClockIOS.zip Runner.app
+          cd ../../..
+
+      - name: Upload iOS Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: TempleClockIOS-App
+          path: frontend/TempleClockIOS.zip
+
+  # ──────────────────────────────────────────────────────────────────
+  # JOB 4: Build macOS App
+  # ──────────────────────────────────────────────────────────────────
+  build-macos:
+    name: 🖥️ Build macOS App
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: stable
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+      - name: Zip macOS Build
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../../TempleClockMacOS.zip careshift.app
+          cd ../../../../..
+
+      - name: Upload macOS Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: TempleClockMacOS-App
+          path: frontend/TempleClockMacOS.zip
+
+  # ──────────────────────────────────────────────────────────────────
+  # JOB 5: Build Web App
+  # ──────────────────────────────────────────────────────────────────
+  build-web:
+    name: 🌐 Build Web App
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: stable
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Web
+        run: flutter build web --release
+
+      - name: Upload Web Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: TempleClockWeb
+          path: frontend/build/web/
