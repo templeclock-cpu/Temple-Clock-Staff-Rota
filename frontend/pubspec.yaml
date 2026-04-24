@@ -50,4 +50,3 @@ flutter:
   # No local font files — Outfit loaded via google_fonts package
   assets:
     - assets/images/
-    - assets/icons/
