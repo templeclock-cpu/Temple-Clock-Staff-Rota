@@ -28,7 +28,7 @@ class AppConstants {
   // API Configuration
   // For Android Emulator, use 10.0.2.2 instead of localhost
   // For iOS Simulator or Web, use localhost
-  static const String apiBaseUrl = 'http://localhost:5000/api';
+  static const String apiBaseUrl = 'https://temple-clock-staff-rota.onrender.com/api';
   
   // Storage Keys
   static const String tokenKey = 'jwt_token';
