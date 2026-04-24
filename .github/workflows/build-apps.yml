@@ -96,14 +96,14 @@ jobs:
           flutter-version: '3.41.5'
           channel: stable
 
+      - name: Get dependencies
+        run: flutter pub get
+
       - name: Install CocoaPods
         run: |
           sudo gem install cocoapods
           cd ios && pod install --repo-update
           cd ..
-
-      - name: Get dependencies
-        run: flutter pub get
 
       - name: Build iOS (unsigned)
         run: flutter build ios --release --no-codesign
@@ -140,14 +140,14 @@ jobs:
           flutter-version: '3.41.5'
           channel: stable
 
+      - name: Get dependencies
+        run: flutter pub get
+
       - name: Install CocoaPods
         run: |
           sudo gem install cocoapods
           cd macos && pod install --repo-update
           cd ..
-
-      - name: Get dependencies
-        run: flutter pub get
 
       - name: Build macOS
         run: flutter build macos --release
