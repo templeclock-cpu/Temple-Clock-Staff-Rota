@@ -3,7 +3,7 @@ name: Build Temple Clock Apps
 on:
   push:
     branches: [main, 3rd-Branch]
-  workflow_dispatch: # Allow manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   # ──────────────────────────────────────────────────────────────────
@@ -35,6 +35,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate app icons from logo
+        run: dart run flutter_launcher_icons
+
       - name: Build APK
         run: flutter build apk --release
 
@@ -45,7 +48,7 @@ jobs:
           path: frontend/build/app/outputs/flutter-apk/app-release.apk
 
   # ──────────────────────────────────────────────────────────────────
-  # JOB 2: Build Windows EXE
+  # JOB 2: Build Windows Installer
   # ──────────────────────────────────────────────────────────────────
   build-windows:
     name: 🪟 Build Windows EXE
@@ -67,6 +70,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate app icons from logo
+        run: dart run flutter_launcher_icons
+
       - name: Build Windows
         run: flutter build windows --release
 
@@ -80,7 +86,7 @@ jobs:
           path: frontend/build/windows/installer/TempleClock_Setup.exe
 
   # ──────────────────────────────────────────────────────────────────
-  # JOB 3: Build iOS App (unsigned - for testing)
+  # JOB 3: Build iOS App
   # ──────────────────────────────────────────────────────────────────
   build-ios:
     name: 🍎 Build iOS App
@@ -102,6 +108,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate app icons from logo
+        run: dart run flutter_launcher_icons
+
       - name: Install CocoaPods
         run: |
           sudo gem install cocoapods
@@ -111,11 +120,13 @@ jobs:
       - name: Build iOS (unsigned)
         run: flutter build ios --release --no-codesign
 
-      - name: Zip iOS Build
+      - name: Create iOS IPA-style package
         run: |
-          cd build/ios/iphoneos
-          zip -r ../../../TempleClockIOS.zip Runner.app
-          cd ../../..
+          mkdir -p build/ios/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/Payload/
+          cd build/ios
+          zip -r ../../TempleClockIOS.zip Payload/
+          cd ../..
 
       - name: Upload iOS Build
         uses: actions/upload-artifact@v4
@@ -124,7 +135,7 @@ jobs:
           path: frontend/TempleClockIOS.zip
 
   # ──────────────────────────────────────────────────────────────────
-  # JOB 4: Build macOS App
+  # JOB 4: Build macOS App (DMG installer)
   # ──────────────────────────────────────────────────────────────────
   build-macos:
     name: 🖥️ Build macOS App
@@ -146,6 +157,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate app icons from logo
+        run: dart run flutter_launcher_icons
+
       - name: Install CocoaPods
         run: |
           sudo gem install cocoapods
@@ -155,17 +169,20 @@ jobs:
       - name: Build macOS
         run: flutter build macos --release
 
-      - name: Zip macOS Build
+      - name: Create macOS DMG Installer
         run: |
-          cd build/macos/Build/Products/Release
-          zip -r ../../../../../TempleClockMacOS.zip careshift.app
-          cd ../../../../..
+          APP_PATH="build/macos/Build/Products/Release/careshift.app"
+          DMG_NAME="TempleClockMacOS"
+          mkdir -p dmg_staging
+          cp -r "$APP_PATH" dmg_staging/
+          ln -s /Applications dmg_staging/Applications
+          hdiutil create -volname "Temple Clock" -srcfolder dmg_staging -ov -format UDZO "${DMG_NAME}.dmg"
 
-      - name: Upload macOS Build
+      - name: Upload macOS DMG
         uses: actions/upload-artifact@v4
         with:
-          name: TempleClockMacOS-App
-          path: frontend/TempleClockMacOS.zip
+          name: TempleClockMacOS-DMG
+          path: frontend/TempleClockMacOS.dmg
 
   # ──────────────────────────────────────────────────────────────────
   # JOB 5: Build Web App
@@ -189,6 +206,9 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Generate app icons from logo
+        run: dart run flutter_launcher_icons
 
       - name: Build Web
         run: flutter build web --release
