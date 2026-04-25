@@ -32,10 +32,11 @@ app.use(cors({
     // Allow requests with no origin (mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    // In development, allow any localhost origin (Flutter web uses random ports)
-    if (process.env.NODE_ENV !== 'production' && origin && origin.match(/^http:\/\/localhost(:\d+)?$/)) {
-      return callback(null, true);
-    }
+    // Allow any localhost origin
+    if (origin.match(/^http:\/\/localhost(:\d+)?$/)) return callback(null, true);
+    // Allow any Netlify hosted frontend
+    if (origin.endsWith('.netlify.app')) return callback(null, true);
+    
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
