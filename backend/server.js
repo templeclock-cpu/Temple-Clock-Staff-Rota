@@ -26,6 +26,7 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:8080',
   'http://localhost:3000',
   'http://localhost:5000',
+  'https://flourishing-sundae-6e1369.netlify.app',
 ];
 app.use(cors({
   origin: function (origin, callback) {
