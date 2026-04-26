@@ -218,3 +218,6 @@ jobs:
         with:
           name: TempleClockWeb
           path: frontend/build/web/
+
+      - name: Deploy to Netlify
+        run: npx -y netlify-cli deploy --prod --dir=build/web --site=${{ secrets.NETLIFY_SITE_ID }} --auth=${{ secrets.NETLIFY_AUTH_TOKEN }}
